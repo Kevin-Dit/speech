@@ -1,0 +1,144 @@
+<div class="searchboxmain">
+    <form class="form mobile-search-form search-form" action="{{urls.search}}">
+        <fieldset class="form-fieldset">
+            <div class="form-field">
+                <label class="is-srOnly" for="{{name}}">Search Here</label>
+                <input class="form-input mobile-search-field search-field" data-search-quick name="search_query"
+                    id="search-query" data-error-message="{{lang 'search.error.empty_field'}}"
+                    placeholder="Search Here" autocomplete="off">
+                <button type="button" class="search-speech mobile-search-speech">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                        <defs>
+                            <linearGradient id="mic-gradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                                <stop offset="0%" style="stop-color: red; stop-opacity: 1" />
+                                <stop offset="100%" style="stop-color: red; stop-opacity: 1" />
+                            </linearGradient>
+                        </defs>
+                        <path
+                            d="M15 22c2.761 0 5-2.239 5-5v-12c0-2.761-2.239-5-5-5s-5 2.239-5 5v12c0 2.761 2.239 5 5 5zM22 14v3c0 3.866-3.134 7-7 7s-7-3.134-7-7v-3h-2v3c0 4.632 3.5 8.447 8 8.944v4.056h-4v2h10v-2h-4v-4.056c4.5-0.497 8-4.312 8-8.944v-3h-2z"
+                            class="mic-fill" fill="url(#mic-gradient)"></path>
+                    </svg>
+                </button>
+       
+                <input class="is-srOnly search-submit mobile-search-submit" type="submit" value="Submit">
+            </div>
+        </fieldset>
+    </form>
+    <section class="quickSearchResults" data-bind="html: results"></section>
+    <p role="status" aria-live="polite" class="aria-description--hidden"
+        data-search-aria-message-predefined-text="Search Here"></p>
+</div>
+
+
+<script>
+const voiceSearch = {
+    sform: null,
+    sfield: null,
+    sbtn: null,
+    submitBtn: null,
+    recog: null,
+    isMobile: window.innerWidth <= 1024,
+
+    initElements: function () {
+        this.sform = document.querySelector(this.isMobile ? ".mobile-search-form" : ".search-form");
+        this.sfield = document.querySelector(this.isMobile ? ".mobile-search-field" : ".search-field");
+        this.sbtn = document.querySelector(this.isMobile ? ".mobile-search-speech" : ".search-speech");
+        this.submitBtn = document.querySelector(this.isMobile ? ".mobile-search-submit" : ".search-submit");
+        console.log("Elements initialized");
+    },
+
+    initRecog: function () {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.error("Speech Recognition not supported in this browser.");
+            this.showSearchIcon();
+            return;
+        }
+
+        this.recog = new SpeechRecognition();
+        this.recog.continuous = false; // Stop after one result
+        this.recog.lang = "en-US"; // You can adjust the language as needed
+        this.recog.interimResults = false; // Only return final results
+
+        // When speech recognition starts
+        this.recog.onstart = () => {
+            console.log("Speech recognition started.");
+            this.sbtn.classList.add("active"); // Indicate active listening
+        };
+
+        // When speech recognition ends
+        this.recog.onend = () => {
+            console.log("Speech recognition ended.");
+            this.sbtn.classList.remove("active");
+        };
+
+        // Handle the speech result
+        this.recog.onresult = (event) => {
+            const transcript = event.results[0][0].transcript.toLowerCase().trim();
+            console.log("Heard:", transcript);
+            
+            // Set the field value to what was heard
+            this.sfield.value = transcript;
+
+            // Auto-submit the form after speech recognition
+            setTimeout(() => {
+                this.submitBtn.click(); // Submit the form automatically
+            }, 1000); // Small delay for user to see the text before submit
+        };
+
+        // Handle errors
+        this.recog.onerror = (err) => {
+            console.error("Recognition error:", err);
+            this.stop();
+        };
+    },
+
+    // Start recognition
+    start: function () {
+        if (!this.recog) {
+            this.initRecog(); // Initialize recognition if not already
+        }
+        this.recog.start(); // Start listening
+    },
+
+    // Stop recognition
+    stop: function () {
+        if (this.recog) {
+            this.recog.stop(); // Stop recognition
+        }
+    },
+
+    // Show search icon and hide voice button if speech recognition is not supported
+    showSearchIcon: function () {
+        console.log("Showing search icon and hiding voice button.");
+        this.sbtn.classList.add("hidden");
+    },
+
+    // Hide search icon and show voice button if speech recognition is supported
+    hideSearchIcon: function () {
+        console.log("Hiding search icon and showing voice button.");
+        this.sbtn.classList.remove("hidden");
+    },
+
+    // Initialize everything
+    init: function () {
+        this.initElements();
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            this.showSearchIcon(); // Fallback if speech recognition isn't supported
+        } else {
+            this.hideSearchIcon(); // Show voice button if supported
+            this.sbtn.addEventListener("click", () => {
+                this.start(); // Start recognition on button click
+            });
+        }
+    }
+};
+
+window.addEventListener("DOMContentLoaded", () => {
+    voiceSearch.init();
+});
+
+
+</script>
